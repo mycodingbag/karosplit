@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy policy · Karo Split</title>
+<meta name="description" content="How Karo Split handles your data: trips, expenses and accounts are saved only in the browser on your device. No servers, no selling data.">
+<meta name="theme-color" content="#13302F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23F4B63F'/%3E%3Cpath d='M5 24 13 11l6 8.4L22.4 15 27 24Z' fill='%2313302F'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F1F5F3;
+    --surface: #FFFFFF;
+    --ink: #13302F;
+    --muted: #5B706E;
+    --line: #D7E2DE;
+    --soft: #E6EEEB;
+    --accent: #0E7C66;
+    --accent-ink: #FFFFFF;
+    --sun: #F4B63F;
+    --sun-soft: #FDF1D8;
+    --shadow: 0 1px 2px rgba(19,48,47,.06), 0 10px 30px rgba(19,48,47,.08);
+    --display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+    --body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color-scheme: light;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0F1A1A; --surface: #162424; --ink: #E6F0EE; --muted: #9AB1AE; --line: #2A3B3A; --soft: #1E302F;
+      --accent: #3FBF9F; --accent-ink: #0F1A1A; --sun: #E8A93A; --sun-soft: #2E2716;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.3);
+      color-scheme: dark;
+    }
+  }
+  html { scroll-behavior: smooth; scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 76px); }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  *, *::before, *::after { box-sizing: inherit; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 12px; padding: 13px 20px;
+    font-weight: 600; text-decoration: none; background: var(--accent); color: var(--accent-ink); cursor: pointer; white-space: nowrap;
+  }
+  .btn.sm { padding: 9px 14px; border-radius: 10px; font-size: 15px; }
+
+  /* ---------- Header ---------- */
+  header.site {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--paper); }
+  .nav { display: flex; align-items: center; gap: 28px; height: 64px; }
+  .logo { display: flex; align-items: center; gap: 9px; font-family: var(--display); font-weight: 700; font-size: 19px; text-decoration: none; margin-right: auto; }
+  .logo-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--sun); display: grid; place-items: center; color: #13302F; }
+  .nav-links { display: flex; gap: 24px; }
+  .nav-links a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 15px; }
+  .nav-links a:hover { color: var(--ink); }
+  @media (max-width: 720px) { .nav-links { display: none; } }
+
+  /* ---------- Policy ---------- */
+  .intro { padding: 56px 0 32px; }
+  .intro h1 {
+    font-family: var(--display); font-weight: 800; letter-spacing: -0.035em; line-height: 1;
+    font-size: clamp(40px, 6vw, 68px); margin: 0 0 16px;
+  }
+  .intro .lede { font-size: 19px; color: var(--muted); max-width: 52ch; margin: 0 0 10px; }
+  .updated { font-size: 14px; color: var(--muted); margin: 0; }
+
+  .summary {
+    background: var(--sun-soft); border-radius: 22px; padding: clamp(22px, 4vw, 32px); margin-bottom: 48px;
+  }
+  .summary h2 { font-family: var(--display); font-size: 21px; letter-spacing: -0.01em; margin: 0 0 12px; }
+  .summary ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+  .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; align-items: start; padding-bottom: 88px; }
+  .toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 88px); font-size: 14px; }
+  .toc p { font-weight: 600; margin: 0 0 8px; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .toc a { color: var(--muted); text-decoration: none; }
+  .toc a:hover { color: var(--ink); }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; gap: 0; }
+    .toc { display: none; }
+  }
+
+  .policy { max-width: 70ch; }
+  .policy section + section { border-top: 1px solid var(--line); margin-top: 36px; padding-top: 36px; }
+  .policy h2 { font-family: var(--display); font-weight: 700; font-size: clamp(24px, 3vw, 30px); letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 12px; }
+  .policy h3 { font-family: var(--display); font-size: 18px; letter-spacing: -0.01em; margin: 22px 0 6px; }
+  .policy p { margin: 0 0 14px; }
+  .policy ul { margin: 0 0 14px; padding-left: 20px; display: grid; gap: 6px; }
+  .policy li::marker { color: var(--muted); }
+  .policy code { font-size: .9em; background: var(--soft); border-radius: 6px; padding: 1px 6px; }
+  .muted { color: var(--muted); }
+
+  .table-wrap { overflow-x: auto; margin: 0 0 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; vertical-align: top; padding: 11px 14px; }
+  th { font-weight: 600; background: var(--soft); }
+  tr + tr td { border-top: 1px solid var(--line); }
+
+  footer.site { border-top: 1px solid var(--line); padding: 28px 0 36px; font-size: 14px; color: var(--muted); }
+  .foot { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; }
+  .foot .logo { font-size: 16px; color: var(--ink); }
+  .foot a { color: var(--muted); }
+  .foot a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="logo" href="index.html" aria-label="Karo Split home">
+      <span class="logo-mark" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M2 12 6.5 5l3 4.2L11.2 7 14 12Z" fill="currentColor"/></svg></span>
+      Karo Split
+    </a>
+    <nav class="nav-links" aria-label="Site">
+      <a href="index.html#how">How it works</a>
+      <a href="index.html#features">Features</a>
+      <a href="index.html#faq">FAQ</a>
+    </nav>
+    <a class="btn sm" href="app.html">Open the app</a>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="intro">
+      <h1>Privacy policy</h1>
+      <p class="lede">Karo Split is built so your trips stay on your device. This page explains what the app stores, where it goes, and how to remove it.</p>
+      <p class="updated">Last updated: 4 November 2026</p>
+    </div>
+
+    <div class="summary">
+      <h2>The short version</h2>
+      <ul>
+        <li>Your account, trips and expenses are saved only in the browser on your device. We don’t run a server that receives them.</li>
+        <li>Your mobile number and PIN are stored as one-way scrambled codes (hashes), not as plain text.</li>
+        <li>We don’t sell your data, and we don’t send you texts or emails.</li>
+        <li>Fonts, export tools and (if shown) ads load from Google and jsDelivr, which can see basic technical details like your IP address.</li>
+        <li>You can delete everything at any time by deleting your profile in the app or clearing your browser data.</li>
+      </ul>
+    </div>
+
+    <div class="layout">
+      <nav class="toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#what">What we store</a></li>
+          <li><a href="#where">Where it’s stored</a></li>
+          <li><a href="#account">Mobile number and PIN</a></li>
+          <li><a href="#third-parties">Third-party services</a></li>
+          <li><a href="#ads">Ads and cookies</a></li>
+          <li><a href="#exports">PDF and Excel exports</a></li>
+          <li><a href="#friends">Your friends’ details</a></li>
+          <li><a href="#control">Your choices</a></li>
+          <li><a href="#security">Security</a></li>
+          <li><a href="#children">Children</a></li>
+          <li><a href="#changes">Changes</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ol>
+      </nav>
+
+      <article class="policy">
+        <section id="what">
+          <h2>What we store</h2>
+          <p>Karo Split only stores what you type into it so it can work out who owes whom.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Information</th><th scope="col">Why</th></tr></thead>
+              <tbody>
+                <tr><td>Your name</td><td>Shown on your profile so you can tell accounts apart on a shared device.</td></tr>
+                <tr><td>Mobile number (as a hash), country code and last 4 digits</td><td>Used as your login. The last 4 digits help you recognise your account.</td></tr>
+                <tr><td>PIN (as a salted hash)</td><td>Checks that it’s you when you log in.</td></tr>
+                <tr><td>Trips: name and currency</td><td>Keeps each trip separate.</td></tr>
+                <tr><td>Friends’ names on a trip</td><td>So expenses can be split between people.</td></tr>
+                <tr><td>Expenses: description, amount, category, who paid, who shares it</td><td>To calculate balances and settlements.</td></tr>
+                <tr><td>Payments marked as paid</td><td>To keep balances up to date after someone settles.</td></tr>
+                <tr><td>Last-used country code and current login session</td><td>So you don’t have to pick your country code or log in again every time.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>We don’t ask for your email, location, contacts, photos or payment details. Karo Split never moves money; it only shows who should pay whom.</p>
+        </section>
+
+        <section id="where">
+          <h2>Where it’s stored</h2>
+          <p>Everything above is saved in your browser’s local storage on the device you use (under keys starting with <code>tripsplit:</code>). It is not uploaded to us or to any server we run, and it does not sync between devices.</p>
+          <p>This means:</p>
+          <ul>
+            <li>Only people who can use this browser on this device can reach the data.</li>
+            <li>If you clear your browser data, uninstall the browser or lose the device, your trips are gone. We can’t recover them for you.</li>
+            <li>Private or incognito windows may delete the data when you close them.</li>
+          </ul>
+          <p>Export a PDF or Excel copy if you want to keep a record.</p>
+        </section>
+
+        <section id="account">
+          <h2>Mobile number and PIN</h2>
+          <p>When you create an account, your mobile number is turned into a SHA-256 hash, and your 4-digit PIN is combined with a random value (a salt) and hashed the same way. Only these hashes are saved, together with your country code and the last 4 digits of your number.</p>
+          <p>We don’t verify your number by text message, and we never contact you on it. Because the PIN is only stored as a hash, a forgotten PIN can’t be reset. You can create a new account instead.</p>
+          <p>The PIN is meant to keep people on one shared device out of each other’s trips. It isn’t strong security, so please don’t reuse a PIN that protects something important, like your bank card or phone.</p>
+        </section>
+
+        <section id="third-parties">
+          <h2>Third-party services</h2>
+          <p>Karo Split has no backend of its own, but the pages load a few files from other services. When your browser fetches them, those services receive standard technical details such as your IP address, browser type and the page that asked for the file. They don’t receive your trips or expenses.</p>
+          <ul>
+            <li><strong>Google Fonts</strong> (fonts.googleapis.com, fonts.gstatic.com) for the typefaces. See <a href="https://policies.google.com/privacy" rel="noopener">Google’s privacy policy</a>.</li>
+            <li><strong>jsDelivr</strong> (cdn.jsdelivr.net) for the PDF and Excel export tools, loaded only when you tap export. See <a href="https://www.jsdelivr.com/terms" rel="noopener">jsDelivr’s terms and privacy policy</a>.</li>
+            <li><strong>Our web host</strong>, which, like any website host, may keep short-lived server logs of page requests (IP address, time, page requested).</li>
+          </ul>
+        </section>
+
+        <section id="ads">
+          <h2>Ads and cookies</h2>
+          <p>Karo Split itself doesn’t set cookies or use analytics.</p>
+          <p>To keep the app free, some pages may show ads from <strong>Google AdSense</strong>. When ads are shown, Google and its partners may use cookies or similar technology to serve and measure ads, including ads based on your earlier visits to this and other websites. Ads never see your trips or expenses.</p>
+          <ul>
+            <li>You can turn off personalised ads in <a href="https://adssettings.google.com" rel="noopener">Google Ad Settings</a>.</li>
+            <li>Learn how Google uses data from sites that use its services at <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">policies.google.com/technologies/partner-sites</a>.</li>
+            <li>You can also opt out of some third-party ad cookies at <a href="https://www.aboutads.info/choices" rel="noopener">aboutads.info/choices</a>.</li>
+          </ul>
+          <p>Where the law requires it (for example in the EEA, UK and Switzerland), Google will ask for your consent before using cookies for personalised ads.</p>
+        </section>
+
+        <section id="exports">
+          <h2>PDF and Excel exports</h2>
+          <p>Reports are created on your device and saved straight to it. We don’t receive a copy. Once you share an exported file with someone, it’s up to you and them how it’s used and stored.</p>
+        </section>
+
+        <section id="friends">
+          <h2>Your friends’ details</h2>
+          <p>Friends on a trip don’t need an account. Only the names you type in are stored, on your device. Please add only what’s needed to split the bill, and let your friends know you’re tracking shared expenses.</p>
+        </section>
+
+        <section id="control">
+          <h2>Your choices</h2>
+          <ul>
+            <li><strong>See your data:</strong> everything we store is visible in the app, and you can export it to PDF or Excel.</li>
+            <li><strong>Correct it:</strong> edit trips, friends and expenses at any time, or change your PIN from the profile menu.</li>
+            <li><strong>Delete it:</strong> delete a single trip, or choose <em>Delete profile</em> from the profile menu to remove your account and all of its trips from this device. Clearing your browser’s site data removes everything Karo Split has stored.</li>
+          </ul>
+          <p>Because we don’t hold your data on a server, we can’t look up, export or delete it for you. Those controls are in your hands on your device.</p>
+        </section>
+
+        <section id="security">
+          <h2>Security</h2>
+          <p>Your data never leaves your device through Karo Split, which removes the risk of a server breach. It does, however, depend on the device itself. Keep your phone or computer locked, and avoid using Karo Split on a public or borrowed device. Anyone with full access to the browser’s storage could read the trip details saved there.</p>
+        </section>
+
+        <section id="children">
+          <h2>Children</h2>
+          <p>Karo Split is not meant for children under 13 (or the minimum age where you live), and we don’t knowingly collect information from them.</p>
+        </section>
+
+        <section id="changes">
+          <h2>Changes to this policy</h2>
+          <p>If we change how Karo Split handles data, for example by adding cloud sync, we’ll update this page and the date at the top before the change goes live.</p>
+        </section>
+
+        <section id="contact">
+          <h2>Contact</h2>
+          <p>Questions about this policy? Write to us at <a href="mailto:karosplit.help@gmail.com">karosplit.help@gmail.com</a>.</p>
+        </section>
+      </article>
+    </div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap foot">
+    <a class="logo" href="index.html">
+      <span class="logo-mark" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 12 6.5 5l3 4.2L11.2 7 14 12Z" fill="currentColor"/></svg></span>
+      Karo Split
+    </a>
+    <a href="app.html">Open the app</a>
+    <a href="privacy.html" aria-current="page">Privacy policy</a>
+    <span style="margin-left:auto">© <span id="year">2026</span> Karo Split</span>
+  </div>
+</footer>
+
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

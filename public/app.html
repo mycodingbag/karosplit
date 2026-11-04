@@ -523,7 +523,8 @@
   "use strict";
 
   /* ================= Data ================= */
-  const LS_KEY = "tripsplit:v1";
+  const LS_KEY = "tripsplit:v2";    // this browser's copy of the logged-in account
+  const OLD_KEY = "tripsplit:v1";   // browser-only accounts from before the server
   const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AED", "THB", "SGD", "JPY", "AUD", "CAD"];
   const CATS = [
     { id: "food",   label: "Food",     icon: "🍛" },
@@ -1417,13 +1418,28 @@
     }
   }
 
-  /* ================= Profiles & PIN login ================= */
-  // Note: PINs keep people out of each other's trips on a shared device.
-  // They are not real security; anyone with access to this account's data could read it.
-  const MAX_TRIES = 5, LOCK_MS = 30000;
+  /* ================= Accounts & PIN login ================= */
+  // Accounts live on the server (server.js). The server checks PINs and locks an
+  // account for 15 minutes after 5 wrong tries.
   let lockView = { mode: "login" };  // login | signup | forgot
-  const tries = {};                // profileId -> { n, until }
 
+  // returns { ok, status, data }; status 0 means the server couldn't be reached
+  async function api(method, path, body) {
+    try {
+      const res = await fetch(path, {
+        method, credentials: "same-origin",
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      return { ok: res.ok, status: res.status, data: await res.json().catch(() => ({})) };
+    } catch {
+      return { ok: false, status: 0, data: {} };
+    }
+  }
+  const offlineMsg = "Can’t reach Karo Split. Check your connection and try again.";
+  const apiError = (r, fallback) => (r.status === 0 ? offlineMsg : r.data.error || fallback);
+
+  // Only used to recognise accounts saved in this browser before accounts moved to the server.
   // Plain-JavaScript SHA-256, so PIN checks never depend on the browser's crypto API
   // (which isn't available in every embedded view). Same result as crypto.subtle.
   const SHA_K = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
@@ -1473,16 +1489,48 @@
     bindState();
   }
 
-  function login(p) {
+  const toProfile = (u) => ({
+    id: String(u.id), name: u.name, color: 0,
+    mobileCode: COUNTRIES.map((c) => c.code).sort((a, b) => b.length - a.length).find((c) => u.mobile.startsWith(c)) || "",
+    mobileLast4: u.mobile.slice(-4),
+  });
+
+  // After the server accepts a login or signup: load this user's trips, plus any trips
+  // this browser saved for them before accounts moved to the server.
+  // Returns a note for the welcome toast, or null if the trips couldn't be loaded.
+  async function startUser(u, pin, isNew) {
+    const r = await api("GET", "/api/state");
+    if (!r.ok) return null;
+    const p = toProfile(u);
+    const data = r.data.state || { trips: [], activeTripId: null };
+    const old = takeOldTrips(u.mobile, pin, isNew);
+    const have = new Set(data.trips.map((t) => t.id));
+    const moved = old ? old.trips.filter((t) => !have.has(t.id)) : [];
+    data.trips.push(...moved);
+    if (!data.activeTripId) data.activeTripId = data.trips[0]?.id || null;
+    root = { profiles: [p], data: { [p.id]: data }, legacy: null, updatedAt: Date.now(), unsaved: moved.length > 0 };
     setSession(p.id); activeTab = "expenses"; lockView = { mode: "login" };
-    render(); toast(`Welcome back, ${p.name}`);
+    render();
+    if (moved.length) await flush();
+    if (old && !root.unsaved) old.forget();
+    return moved.length ? ` ${moved.length} trip${moved.length === 1 ? "" : "s"} from this browser moved to your account.` : "";
   }
-  function logout() {
+
+  async function logout() {
     const name = currentProfile()?.name;
     toggleProfileMenu(false);
+    if (root.unsaved) await flush();
+    if (root.unsaved && !confirm("Some changes haven’t reached your account yet and will be lost if you log out now. Log out anyway?")) return;
     document.querySelectorAll("dialog[open]").forEach((d) => d.close());
-    setSession(null); lockView = { mode: "login" }; render();
+    await api("POST", "/api/logout");
+    clearAccount();
     toast(name ? `${name} logged out` : "Logged out");
+  }
+  // forget the logged-in account on this device (after logout or deleting it)
+  function clearAccount() {
+    root = { profiles: [], data: {}, legacy: null, updatedAt: 0, unsaved: false };
+    try { localStorage.removeItem(LS_KEY); } catch {}
+    setSession(null); lockView = { mode: "login" }; setSync(""); render();
   }
 
   /* ---------- Mobile number helpers ---------- */
@@ -1506,10 +1554,38 @@
     if (c.re && !c.re.test(d)) return null;
     return c.code + d;
   }
-  // only a scrambled version of the number is stored, plus the last 4 digits for display
   const mobileKey = (m) => sha256Hex(`tripsplit-mobile:${m}`);
   const maskMobile = (p) => p.mobileLast4 ? `${p.mobileCode || ""} •••••• ${p.mobileLast4}` : "No mobile number";
-  const findByMobile = (m) => { const k = mobileKey(m); return root.profiles.find((p) => p.mobileHash === k) || null; };
+
+  /* ---------- Trips saved by the old browser-only accounts ---------- */
+  // Before accounts moved to the server, profiles and trips were kept only in this browser.
+  // They move into a server account the first time someone signs up or logs in with the
+  // same number and PIN. Trips from before profiles existed go to the first new signup.
+  function readOld() { try { return parse(localStorage.getItem(OLD_KEY)); } catch { return null; } }
+  function takeOldTrips(mobile, pin, isNew) {
+    const old = readOld(); if (!old) return null;
+    const k = mobileKey(mobile);
+    const p = old.profiles.find((x) => x.mobileHash === k && pinMatches(x, pin));
+    let found = null;
+    if (p) { found = old.data[p.id]; old.profiles = old.profiles.filter((x) => x !== p); delete old.data[p.id]; }
+    else if (isNew && old.legacy) { found = old.legacy; old.legacy = null; }
+    if (!found?.trips?.length) return null;
+    // called once the trips are safely on the server
+    const forget = () => {
+      try {
+        if (old.profiles.length || old.legacy) localStorage.setItem(OLD_KEY, JSON.stringify(old));
+        else localStorage.removeItem(OLD_KEY);
+      } catch {}
+    };
+    return { trips: found.trips, forget };
+  }
+  function oldNote() {
+    const old = readOld(); if (!old) return "";
+    const n = old.legacy?.trips?.length || 0;
+    if (n) return `You have ${n} trip${n === 1 ? "" : "s"} saved in this browser. Create an account and ${n === 1 ? "it" : "they"} will move into it.`;
+    if (old.profiles.length) return "Used Karo Split on this device before? Create your account with the same mobile number and PIN, and your trips will move over.";
+    return "";
+  }
 
   const mobileField = (id, label) => `
     <div class="field"><label for="${id}">${label}</label>
@@ -1523,11 +1599,11 @@
   function renderLock() {
     const v = lockView;
 
-    if (v.mode === "signup" || (!root.profiles.length && v.mode !== "forgot")) {
-      const legacyN = root.legacy?.trips?.length || 0;
+    const note = oldNote();
+    if (v.mode === "signup") {
       app.innerHTML = `<div class="lock">
         <h1>Create your account</h1>
-        <p>${legacyN ? `Your ${legacyN} existing trip${legacyN === 1 ? "" : "s"} will move into this account.` : "Use your mobile number and a 4-digit PIN to log in."}</p>
+        <p>${esc(note || "Use your mobile number and a 4-digit PIN to log in on any device.")}</p>
         <form class="lock-form" id="signupForm" novalidate autocomplete="off">
           <div class="field"><label for="sName">Your name</label>
             <input id="sName" class="input" maxlength="30" placeholder="Asha" autocomplete="name"></div>
@@ -1536,7 +1612,7 @@
           <div class="hint" id="lockMsg" role="alert">PINs can’t be recovered, so pick one you’ll remember.</div>
           <button type="submit" class="btn" style="justify-content:center">Create account</button>
         </form>
-        ${root.profiles.length ? `<div class="lock-links"><span class="hint">Already have an account?</span><button type="button" class="link" data-lock="login">Log in</button></div>` : ""}
+        <div class="lock-links"><span class="hint">Already have an account?</span><button type="button" class="link" data-lock="login">Log in</button></div>
       </div>`;
       setTimeout(() => $("#sName")?.focus(), 30);
       return;
@@ -1545,7 +1621,7 @@
     if (v.mode === "forgot") {
       app.innerHTML = `<div class="lock">
         <h1>Forgot your PIN?</h1>
-        <p>PINs are stored only as a scrambled code and there’s no text-message check in this app, so a PIN can’t be reset. If you still remember it later, log in and change it from your profile menu. Otherwise, create a new account with a different number.</p>
+        <p>PINs are stored only as a scrambled code and there’s no text-message check yet, so a PIN can’t be reset. If you remember it later, log in and change it from your profile menu. Otherwise, create a new account with a different number.</p>
         <div class="lock-links">
           <button type="button" class="btn ghost" data-lock="login">Back to log in</button>
           <button type="button" class="btn" data-lock="signup">Create account</button>
@@ -1557,7 +1633,7 @@
     // log in
     app.innerHTML = `<div class="lock">
       <h1>Log in to Karo Split</h1>
-      <p>Enter your mobile number and 4-digit PIN.</p>
+      <p>${esc(note || "Enter your mobile number and 4-digit PIN.")}</p>
       <form class="lock-form" id="loginForm" novalidate autocomplete="on">
         ${mobileField("inMobile", "Mobile number")}
         ${pinFieldHtml("inPin", "PIN", "current-password")}
@@ -1580,60 +1656,38 @@
   }
   const rememberCc = (cc) => { try { localStorage.setItem("tripsplit:lastCc", cc); } catch {} };
 
-  // lockout per mobile number after too many wrong PINs
-  function lockedFor(key) { const r = tries[key]; return r && r.until > Date.now() ? r.until - Date.now() : 0; }
-
-  function doLogin() {
+  async function doLogin() {
     const cc = $("#inMobileCc").value;
     const mobile = normalizeMobile(cc, $("#inMobile").value);
     const pin = $("#inPin").value;
     if (!mobile) return lockMsg(cc === "+91" ? "Enter a valid 10-digit mobile number." : "Enter a valid mobile number.");
     if (!isPin(pin)) return lockMsg("Enter your 4-digit PIN.");
-    const key = mobileKey(mobile);
-    const wait = lockedFor(key);
-    if (wait) return lockMsg(`Too many wrong tries. Try again in ${Math.ceil(wait / 1000)}s.`);
-    let p = null, ok = false;
-    try { p = findByMobile(mobile); ok = !!p && pinMatches(p, pin); }
-    catch (err) { console.error(err); return lockMsg("Couldn’t check your details. Reload the page and try again."); }
-    if (ok) { delete tries[key]; rememberCc(cc); login(p); return; }
-    const r = (tries[key] = tries[key] || { n: 0, until: 0 });
-    r.n++;
+    const r = await api("POST", "/api/login", { mobile, pin });
+    if (r.ok) {
+      rememberCc(cc);
+      const note = await startUser(r.data.user, pin, false);
+      if (note !== null) { toast(`Welcome back, ${r.data.user.name}.${note}`); return; }
+      return lockMsg("Logged in, but couldn’t load your trips. Try again.");
+    }
     $("#inPin").value = "";
-    if (r.n >= MAX_TRIES) { r.n = 0; r.until = Date.now() + LOCK_MS; lockMsg("Too many wrong tries. Try again in 30s."); }
-    else lockMsg(`Mobile number or PIN is incorrect. ${MAX_TRIES - r.n} ${MAX_TRIES - r.n === 1 ? "try" : "tries"} left.`);
+    lockMsg(apiError(r, "Couldn’t log in. Try again."));
     $("#inPin").focus();
   }
 
-  function doSignup() {
+  async function doSignup() {
     const name = $("#sName").value.trim(), cc = $("#sMobileCc").value;
     const mobile = normalizeMobile(cc, $("#sMobile").value);
     const pin = $("#sPin").value, pin2 = $("#sPin2").value;
     if (!name) return lockMsg("Enter your name.");
     if (!mobile) return lockMsg(cc === "+91" ? "Enter a valid 10-digit mobile number." : "Enter a valid mobile number.");
-    if (findByMobile(mobile)) return lockMsg("An account with this number already exists. Log in instead.");
     if (!isPin(pin)) return lockMsg("Your PIN needs exactly 4 digits.");
     if (pin !== pin2) return lockMsg("The two PINs don’t match.");
-    const salt = uid() + uid();
-    const used = new Set(root.profiles.map((p) => p.color));
-    const color = [...AVATAR_COLORS.keys()].find((i) => !used.has(i)) ?? root.profiles.length;
-    const p = {
-      id: uid(), name, salt, pinHash: hashPin(pin, salt), color, createdAt: Date.now(),
-      mobileHash: mobileKey(mobile), mobileCode: cc, mobileLast4: mobile.slice(-4),
-    };
-    root.profiles.push(p);
-    root.data[p.id] = root.legacy && root.profiles.length === 1 ? root.legacy : { trips: [], activeTripId: null };
-    root.legacy = null;
+    const r = await api("POST", "/api/signup", { name, mobile, pin });
+    if (!r.ok) return lockMsg(apiError(r, "Couldn’t create your account. Try again."));
     rememberCc(cc);
-    setSession(p.id); activeTab = "expenses"; lockView = { mode: "login" };
-    commit(); toast(`Account created. Hi ${name}!`);
-  }
-
-  function deleteProfile(id) {
-    root.profiles = root.profiles.filter((p) => p.id !== id);
-    delete root.data[id];
-    if (session === id) setSession(null);
-    lockView = { mode: "login" };
-    commit();
+    const note = await startUser(r.data.user, pin, true);
+    if (note !== null) toast(`Account created. Hi ${name}!${note}`);
+    else lockMsg("Account created, but couldn’t load it. Log in to continue.");
   }
 
   // lock screen events
@@ -1649,11 +1703,16 @@
     if (e.target.matches('input[type="tel"]')) e.target.value = e.target.value.replace(/[^\d\s+()-]/g, "");
     const m = $("#lockMsg"); if (m && m.classList.contains("err")) { m.textContent = ""; m.classList.remove("err"); }
   });
-  app.addEventListener("submit", (e) => {
+  app.addEventListener("submit", async (e) => {
     if (session) return;
     e.preventDefault();
-    if (e.target.id === "loginForm") doLogin();
-    else if (e.target.id === "signupForm") doSignup();
+    const btn = e.target.querySelector('[type="submit"]');
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    try {
+      if (e.target.id === "loginForm") await doLogin();
+      else if (e.target.id === "signupForm") await doSignup();
+    } finally { btn.disabled = false; }
   });
 
   // header profile menu
@@ -1711,48 +1770,60 @@
   $("#pinForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const p = currentProfile(); if (!p) return;
-    const msg = $("#pMsg");
+    const msg = $("#pMsg"), save = $("#pinDlgSave");
     const fail = (m) => { msg.textContent = m; msg.classList.add("err"); };
-    if (!pinMatches(p, $("#pOld").value)) return fail("That’s not your current PIN.");
+    const pin = $("#pOld").value;
+    if (!isPin(pin)) return fail("Enter your 4-digit PIN.");
+    if (save.disabled) return;
     if (pinDlgMode === "pin") {
       const a = $("#pNew").value, b = $("#pNew2").value;
       if (!isPin(a)) return fail("Your new PIN needs exactly 4 digits.");
       if (a !== b) return fail("The two new PINs don’t match.");
-      p.salt = uid() + uid(); p.pinHash = await hashPin(a, p.salt);
-      pinDlg.close(); commit(); toast("PIN changed");
+      save.disabled = true;
+      const r = await api("POST", "/api/pin", { pin, newPin: a });
+      save.disabled = false;
+      if (!r.ok) return fail(apiError(r, "Couldn’t change your PIN. Try again."));
+      pinDlg.close(); toast("PIN changed");
     } else {
-      const name = p.name;
-      pinDlg.close(); deleteProfile(p.id); toast(`${name}’s profile deleted`);
+      save.disabled = true;
+      const r = await api("DELETE", "/api/account", { pin });
+      save.disabled = false;
+      if (!r.ok) return fail(apiError(r, "Couldn’t delete your profile. Try again."));
+      pinDlg.close(); clearAccount(); toast(`${p.name}’s profile deleted`);
     }
   });
 
   /* ================= Storage ================= */
-  // Your account (private to you) when available, otherwise this browser.
-  let store = { kind: "local", ref: null };
+  // Trips are saved to the account on the server. This browser keeps a copy so the app
+  // still works offline; changes that haven't reached the server (root.unsaved) are sent
+  // on the next save, when the connection comes back, or on the next page load.
   let syncText = "";
   let saveTimer, writing = false, pending = false;
 
   function setSync(text) { syncText = text; const n = $("#syncNote"); if (n) n.textContent = text; }
 
-  function commit() { root.updatedAt = Date.now(); render(); scheduleSave(); }
+  function commit() { root.updatedAt = Date.now(); root.unsaved = true; render(); scheduleSave(); }
   function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 500); }
+  const saveLocal = () => { try { if (session) localStorage.setItem(LS_KEY, JSON.stringify(root)); } catch {} };
 
   async function flush() {
-    const json = JSON.stringify(root);
-    try { localStorage.setItem(LS_KEY, json); } catch {}
-    if (store.kind !== "db") return;
+    saveLocal();
+    if (!session || !root.unsaved) return;
     if (writing) { pending = true; return; }
     writing = true;
-    try { await store.ref.set({ state: json, updatedAt: root.updatedAt }); setSync("Saved to your account"); }
-    catch { setSync("Couldn’t save to your account. Changes are kept in this browser for now."); }
+    const r = await api("PUT", "/api/state", { state: root.data[session] });
     writing = false;
-    if (pending) { pending = false; flush(); }
+    if (pending) { pending = false; return flush(); }
+    if (r.ok) { root.unsaved = false; saveLocal(); setSync("Saved to your account"); }
+    else if (r.status === 401) setSync("You’ve been logged out on the server. Log out and back in to save your changes.");
+    else setSync("Couldn’t save to your account. Changes are kept in this browser for now.");
   }
+  window.addEventListener("online", () => { if (root.unsaved) flush(); });
 
   function parse(json) {
     try {
       const s = JSON.parse(json);
-      if (s && Array.isArray(s.profiles)) return { profiles: s.profiles, data: s.data || {}, legacy: s.legacy || null, updatedAt: s.updatedAt || 0 };
+      if (s && Array.isArray(s.profiles)) return { profiles: s.profiles, data: s.data || {}, legacy: s.legacy || null, updatedAt: s.updatedAt || 0, unsaved: !!s.unsaved };
       // older saves (before profiles): keep the trips and hand them to the first profile created
       if (s && Array.isArray(s.trips)) return { profiles: [], data: {}, legacy: s.trips.length ? { trips: s.trips, activeTripId: s.activeTripId || s.trips[0]?.id || null } : null, updatedAt: s.updatedAt || 0 };
     } catch {}
@@ -1769,25 +1840,20 @@
     bindState();
   }
 
+  // On page load: check the login cookie with the server and fetch the latest trips.
   async function connectAccount() {
-    const c = window.claude;
-    if (!c || typeof c.use !== "function") { setSync("Saved in this browser"); return; }
-    try {
-      const [user, db] = await Promise.all([c.use("user"), c.use("db")]);
-      const id = user ? await user.id() : null;
-      if (!db || !id) { setSync("Saved in this browser"); return; }
-      const ref = db.collection("data/users/" + id).doc("tripsplit");
-      const snap = await ref.get();
-      const remote = snap.exists ? parse(snap.data()?.state) : null;
-      store = { kind: "db", ref };
-      if (remote && remote.updatedAt >= (root.updatedAt || 0)) {
-        root = remote; validateSession(); render(); setSync("Saved to your account");
-      } else if (root.profiles.length || root.legacy) {
-        await flush();
-      } else setSync("Saved to your account");
-    } catch {
-      setSync("Saved in this browser");
+    const me = await api("GET", "/api/me");
+    if (me.status === 0) { if (session) setSync("Offline. Changes are kept in this browser for now."); return; }
+    if (!me.ok) { if (session) clearAccount(); return; }
+    const p = toProfile(me.data.user);
+    const r = await api("GET", "/api/state");
+    if (!r.ok) { setSync("Couldn’t load your latest trips. Showing the copy in this browser."); return; }
+    if (session === p.id && root.unsaved) {
+      // this browser has edits the server hasn't seen yet: send them
+      root.profiles = [p]; await flush(); return;
     }
+    root = { profiles: [p], data: { [p.id]: r.data.state || { trips: [], activeTripId: null } }, legacy: null, updatedAt: Date.now(), unsaved: false };
+    setSession(p.id); saveLocal(); render(); setSync("Saved to your account");
   }
 
   loadLocal();
