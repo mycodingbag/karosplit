@@ -116,6 +116,8 @@
   .trip-head p { margin: 0; color: var(--muted); }
   .trip-head p strong { color: var(--ink); font-weight: 600; }
 
+  .logo { display: flex; align-items: center; gap: 9px; font-family: var(--display); font-weight: 700; font-size: 19px; text-decoration: none; margin-right: auto; color: var(--ink); }
+
   .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
   .section-head h2 { font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: -0.01em; margin: 0; }
 
@@ -370,9 +372,11 @@
 
 <header class="top">
   <div class="top-inner">
-    <div class="brand"><span class="brand-mark" aria-hidden="true">
+    <a href="./" class="brand logo" aria-label="Karo Split home">
+      <span class="brand-mark" aria-hidden="true">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12 6.5 5l3 4.2L11.2 7 14 12Z" fill="currentColor"/></svg>
-    </span><span class="brand-text">Karo Split</span></div>
+    </span><span class="brand-text">Karo Split</span>
+  </a>
     <div class="trip-picker" id="pickerWrap" hidden>
       <select id="tripSelect" aria-label="Choose trip"></select>
     </div>
